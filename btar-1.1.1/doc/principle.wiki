@@ -1,0 +1,224 @@
+<h2>Main idea</h2>
+  *  Format compatible with usual unix tools like sh/tar/gzip 
+  *  Can be unpacked without 'btar'
+  *  Can be serialised, like tar
+  *  Can take profit of random access, with indexes
+  *  Can resist partial loss of a portion of the file, and only a part gets affected
+     (redundancy apart)
+  *  Flexible on the backup chain (compressors, ciphers, signatures, redundancy, ...)
+  *  As it's based on blocks, allow variable block size, to take profit of
+     compressors, or choose the accepted amount data loss for every minimal corruption
+  *  Can have the backup in a single file
+
+The result goes like this:
+<verbatim>
+disk files -> tar file -> split into blocks -> filter blocks -> join the blocks in a tar file
+</verbatim>
+
+By filter, it can mean compression, cipher, etc, as if using a unix pipeline.
+
+The index works like an additional file in the final tar, also in tar format, but what would be
+files in the original tar, look like symlinks to the blocks.
+
+<h2>Example</h2>
+
+So a directory like this:
+<verbatim>
+btar/a
+btar/doc
+btar/doc/.principle.wiki.swp
+btar/doc/requirements.wiki
+btar/Makefile
+btar/traverse.c
+btar/traverse.h
+btar/traverse.o
+btar/btar
+btar/main.c
+btar/main.h
+btar/main.o
+btar/_FOSSIL_
+btar/mytar.c
+btar/mytar.h
+btar/mytar.o
+btar/.gdb_history
+btar/memfile.c
+btar/COPYING
+</verbatim>
+
+can be compressed and ciphered with a command like this ([#ccryptenv|about ccryptenv]). Notice that
+the filters simple mean programs that will be called in a pipe. You can run any program you like
+in the filter, that takes a block from stdin, and outputs something on stdout.
+<verbatim>
+$ PASSWORD=xxx btar -c -F gzip -F ccryptenv btar/ -f final.btar
+</verbatim>
+
+In this case, btar creates a simple tar file, splits it into blocks of fixed size, and runs each
+block through the pipe "gzip | ccryptenv", conserving each block result in the final tar. Notice how the extensions of the block files (simply) keep note of the filters used at backup time.
+
+<verbatim>
+$ tar tvf final.btar
+-rw-r--r-- unknown/unknown 30569 1970-01-01 01:00 block0.tar.gzip.ccryptenv
+-rw-r--r-- unknown/unknown 22379 1970-01-01 01:00 block1.tar.gzip.ccryptenv
+-rw-r--r-- unknown/unknown 19727 1970-01-01 01:00 block2.tar.gzip.ccryptenv
+-rw-r--r-- unknown/unknown   587 1970-01-01 01:00 index.tar.gzip.ccryptenv
+</verbatim>
+
+I used a modified 'btar' version that sets the block size to 100.024 bytes, just for the example, as
+btar accepts the block size (-b) in megabytes.
+
+The original tar can be unpacked this easy way:
+<verbatim>
+$ PASSWORD=xxx btar -x -f final.btar
+</verbatim>
+
+If you only want some files, use this. It will only unpack the blocks 1 and 2!
+That's a big advantage, in a big backup with thousands of blocks.
+<verbatim>
+$ PASSWORD=xxx btar -x 'btar/mytar.*' -f final.btar
+</verbatim>
+
+If the input of btar is not seekable (like a pipe), then it will unpack all
+blocks and ignore the index.
+
+It can also extract the required blocks as to a new tar:
+<verbatim>
+$ btar -T 'btar/mytar.*' < final.btar | tar tv
+-rw-rw-r-- unknown/unknown  4530 2011-11-17 22:05 btar/mytar.c
+-rw-rw-r-- unknown/unknown  1260 2011-11-17 22:04 btar/mytar.h
+-rw-rw-r-- unknown/unknown 17952 2011-11-17 22:33 btar/mytar.o
+</verbatim>
+
+<h2>How does the index look like</h2>
+
+The files in index can be easily listed by this command:
+<verbatim>
+$ PASSWORD=xxx btar -l -f final.btar
+btar/Makefile
+btar/traverse.c
+btar/traverse.h
+btar/traverse.o
+btar/btar
+btar/main.c
+btar/main.h
+btar/main.o
+btar/_FOSSIL_
+btar/mytar.c
+btar/mytar.h
+btar/mytar.o
+btar/.gdb_history
+btar/memfile.c
+btar/COPYING
+</verbatim>
+
+<verbatim>
+$ PASSWORD=xxx btar -L -f final.btar | tar tv
+drwxrwxr-x unknown/unknown   0 2011-11-13 16:42 btar/a
+drwxrwxr-x unknown/unknown   0 2011-11-17 23:39 btar/doc
+lrw-rw-r-- unknown/unknown   0 2011-11-17 23:39 btar/doc/principle.wiki -> block0.tar.gzip.ccryptenv
+lrw------- unknown/unknown   0 2011-11-17 23:39 btar/doc/.principle.wiki.swp -> block0.tar.gzip.ccryptenv
+lrw-rw-r-- unknown/unknown   0 2011-11-16 20:17 btar/doc/requirements.wiki -> block0.tar.gzip.ccryptenv
+lrw-rw-r-- unknown/unknown   0 2011-11-16 20:17 btar/Makefile -> block0.tar.gzip.ccryptenv
+lrw-rw-r-- unknown/unknown   0 2011-11-17 22:48 btar/traverse.c -> block0.tar.gzip.ccryptenv
+lrw-rw-r-- unknown/unknown   0 2011-11-17 22:48 btar/traverse.h -> block0.tar.gzip.ccryptenv
+lrw-rw-r-- unknown/unknown   0 2011-11-17 22:51 btar/traverse.o -> block0.tar.gzip.ccryptenv
+lrwxrwxr-x unknown/unknown   0 2011-11-17 23:40 btar/btar -> block0.tar.gzip.ccryptenv
+lrw-rw-r-- unknown/unknown   0 2011-11-17 23:40 btar/main.c -> block0.tar.gzip.ccryptenv
+lrw-rw-r-- unknown/unknown   0 2011-11-17 22:33 btar/main.h -> block1.tar.gzip.ccryptenv
+lrw-rw-r-- unknown/unknown   0 2011-11-17 23:40 btar/main.o -> block1.tar.gzip.ccryptenv
+lrw-r--r-- unknown/unknown   0 2011-11-17 22:51 btar/_FOSSIL_ -> block1.tar.gzip.ccryptenv
+lrw-rw-r-- unknown/unknown   0 2011-11-17 22:05 btar/mytar.c -> block1.tar.gzip.ccryptenv
+lrw-rw-r-- unknown/unknown   0 2011-11-17 22:04 btar/mytar.h -> block2.tar.gzip.ccryptenv
+lrw-rw-r-- unknown/unknown   0 2011-11-17 22:33 btar/mytar.o -> block2.tar.gzip.ccryptenv
+lrw------- unknown/unknown   0 2011-11-17 22:23 btar/.gdb_history -> block2.tar.gzip.ccryptenv
+lrw-rw-r-- unknown/unknown   0 2011-11-17 21:51 btar/memfile.c -> block2.tar.gzip.ccryptenv
+lrw-rw-r-- unknown/unknown   0 2007-07-02 00:55 btar/COPYING -> block2.tar.gzip.ccryptenv
+</verbatim>
+
+Thus, btar will be able to take advantadge of the index when extracting or preparing differential
+archives.
+
+<h2>Filter mode</h2>
+
+If you have your own 'tar' implementation, that serialises better the contents of a disk, you
+can still use <em>btar</em>, this way (note the lack of 'c' in btar):
+<verbatim>
+$ tar c mydir | PASSWORD=xxx btar -F gzip -F ccryptenv > final.tar
+</verbatim>
+
+By default it will suppose a gnu tar input. You can add <code>-N</code> to
+avoid any indexing. Add <code>-R</code>, and it will add an XOR redundancy code
+for some additional data loss protection.
+
+<h2><a name="ccryptenv">The <code>ccryptenv</code> above</a></h2>
+
+A script I use to encrypt streams using [http://ccrypt.sourceforge.net/|ccrypt]:
+
+<verbatim>
+#!/bin/sh
+if [ $# -eq 1 -a "$1" == "-d"]; then
+    exec ccdecrypt -E PASSWORD
+else
+    exec ccrypt -E PASSWORD
+fi
+</verbatim>
+
+<h2>Unpacking <em>without</em> btar</h2>
+
+The btar file can be unpacked this hard way too:
+<verbatim>
+$ (for a in `tar tf final.btar | grep ^block`; do
+    tar xf final.btar -O $a | PASSWORD=xxx ccryptenv -d | gzip -d; done) | tar t
+drwxrwxr-x unknown/unknown   0 2011-11-13 16:42 btar/a
+drwxrwxr-x unknown/unknown   0 2011-11-17 23:47 btar/doc
+-rw-rw-r-- unknown/unknown 3168 2011-11-17 23:47 btar/doc/principle.wiki
+-rw------- unknown/unknown 12288 2011-11-17 23:49 btar/doc/.principle.wiki.swp
+-rw-rw-r-- unknown/unknown  1804 2011-11-16 20:17 btar/doc/requirements.wiki
+-rw-rw-r-- unknown/unknown   198 2011-11-16 20:17 btar/Makefile
+-rw-rw-r-- unknown/unknown  6701 2011-11-17 22:48 btar/traverse.c
+-rw-rw-r-- unknown/unknown   186 2011-11-17 22:48 btar/traverse.h
+-rw-rw-r-- unknown/unknown 21480 2011-11-17 22:51 btar/traverse.o
+-rwxrwxr-x unknown/unknown 47542 2011-11-17 23:40 btar/btar
+-rw-rw-r-- unknown/unknown 17688 2011-11-17 23:40 btar/main.c
+-rw-rw-r-- unknown/unknown   159 2011-11-17 22:33 btar/main.h
+-rw-rw-r-- unknown/unknown 34264 2011-11-17 23:40 btar/main.o
+-rw-r--r-- unknown/unknown 48128 2011-11-17 22:51 btar/_FOSSIL_
+-rw-rw-r-- unknown/unknown  4530 2011-11-17 22:05 btar/mytar.c
+-rw-rw-r-- unknown/unknown  1260 2011-11-17 22:04 btar/mytar.h
+-rw-rw-r-- unknown/unknown 17952 2011-11-17 22:33 btar/mytar.o
+-rw------- unknown/unknown  2805 2011-11-17 22:23 btar/.gdb_history
+-rw-rw-r-- unknown/unknown     0 2011-11-17 21:51 btar/memfile.c
+-rw-rw-r-- unknown/unknown 35147 2007-07-02 00:55 btar/COPYING
+</verbatim>
+
+<h2>Command line help</h2>
+<verbatim>
+btar [d34a806767] Copyright (C) 2011  Lluis Batlle i Rossell
+usage: btar [options] [actions]
+actions:
+   -c       Create a btar file
+   -x       Extract the btar contents to disk
+   -T       Extract the btar contents as a tar to stdout
+   -l       List the btar index contents
+   -L       Output the btar index as tar
+   (none)   Make btar file from the standard input (filter mode)
+options:
+   -f <file>        Output file while creating, input while extracting
+   -b <blocksize>   Set the block size in megabytes (default 10MiB)
+   -F <filter>      Filter each block through program named 'filter'
+   -N               Skip making an index
+   -X <pattern>     Add glob exclude pattern
+   -j <n>           Number of blocks to filter at once
+   -R               Add a XOR redundancy block (create/filter)
+   -d <file>        Take the index in the btar file as files already stored
+   -D <file>        Take the index file as files already stored
+   -v               Output the file names on stderr (on action 'c')
+   -V               Show traces of what goes on
+examples:
+   tar c /home | btar -b 50 -F xz > /tmp/homebackup.btar
+   btar -F xz -c mydir > mydir.btar
+   btar -d mydir.btar -v -c mydir > mydir2.btar
+   btar -T 'mydir/m*' < mydir.btar | tar x
+ This program comes with ABSOLUTELY NO WARRANTY.
+ This is free software, and you are welcome to redistribute it
+ under certain conditions. See the source distribution for details.
+</verbatim>

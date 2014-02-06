@@ -1,0 +1,103 @@
+Requirements for the program I imagine:
+
+<table border=1>
+<tr>
+<td>
+<th>tar
+<th>[http://duplicity.nongnu.org/|duplicity]
+<th>[http://nongnu.org/libchop|libchop]
+<th>[http://rsync.samba.org/|rsync]
+<th>[http://dar.sourceforge.net/|dar]
+<th>btar
+<th>btar some day
+<tr>
+<th>Should look simple enough
+<td>Yes
+<td>No (python)
+<td>No (complex implementation)
+<td>Yes
+<td>No (own format)
+<td>Yes (6660 C lines, can be unpacked with tar)
+<td>Yes (could still be unpacked with tar)
+<tr>
+<th>Allows incremental backups
+<td>GNU tar yes, with special index apart. Only with full files.
+<td>Yes, with rolling checksum.
+<td>Yes (content-based)
+<td>Yes, but not multiple snapshots
+<td>Yes, but only with full files
+<td>Yes, using the index and optionally with librsync for big file deltas
+<td>Yes, using the index and optionally with librsync for big file deltas
+<tr>
+<th>Verifiable integrity
+<td>No data checksum
+<td>No
+<td>Yes (content-based)
+<td>No (no checkums in the backup)
+<td>Yes (but needs ciphering password in the host)
+<td>Using filters, like signing
+<td>Using filters, like signing
+<tr>
+<th>Allow ciphering or compressing
+<td>Yes, any
+<td>Some
+<td>Some
+<td>No (only zlib on transfer)
+<td>Some (per file)
+<td>Yes, any
+<td>Yes, any
+<tr>
+<th>Easy remote incremental backups
+<td>GNU tar yes, with special snapshot indexes
+<td>Yes (with cache)
+<td>Yes
+<td>Yes (no snapshots)
+<td>Yes, with its indexes
+<td>Yes, passing the index
+<td>Yes, passing the index
+<tr>
+<th>Indexed listing or retrieving
+<td>No
+<td>Yes (with cache)
+<td>Yes
+<td>Yes
+<td>Yes
+<td>Yes
+<td>Yes
+<tr>
+<th>Serialisation (to a stream, from a stream)
+<td>Yes
+<td>No
+<td>No?
+<td>No
+<td>No
+<td>Yes
+<td>Yes
+<tr>
+<th>Can use multicores
+<td>No
+<td>No
+<td>Could be
+<td>No
+<td>No
+<td>Only making the backup
+<td>Yes
+<tr>
+<th>Resist partial data loss/manipulation.
+<td>Only if not compressed
+<td>No
+<td>Index plays a major role. Then, there is the db.
+<td>Yes
+<td>Yes?
+<td>Yes
+<td>Yes
+<tr>
+<th>Redundancy
+<td>No
+<td>No
+<td>No
+<td>No
+<td>No
+<td>Yes (inter-block parity)
+<td>Yes (inter-block parity)
+</table>

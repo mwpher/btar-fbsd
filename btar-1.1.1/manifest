@@ -1,0 +1,46 @@
+C Updating\sversiont\sto\s1.1.1,\sfor\sa\sbugfix\srelease.\sUpdating\schangelog.
+D 2012-07-30T17:18:46.828
+F AUTHORS d46e04a39cda70258a827500a221770462a7f491
+F COPYING 8624bcdae55baeef00cd11d5dfcfa60f68710a02
+F ChangeLog 2b697f66c371bfa912bf3557c5c202de3d24a51e
+F Makefile fdcb09f6200663289b09494f86f5e3e7dcde304d
+F block.c 4534c17e58f7718777a27ceb13f1199cc0b5d4a6
+F block.h 7b50e0c66b4fc663b7a90cc89da64861b3cc6579
+F blockprocess.c 1b33a93affeed3f5804502c30bd45a1365c7d011
+F blockprocess.h f22b6ef38ea40adede2622f445ab2c953065fe7c
+F btar.1 bad8b60f11635e65b470ddf86382b44aa2c51ae7
+F doc/home.wiki 8b7abf825c496d7fbb0e31cab46c5ebec3717a4a
+F doc/principle.wiki 569f7fcb07f9eec72c056e57460534534427d32e
+F doc/requirements.wiki 8798a26cd4ad2ec1ff28e8584441b52850be165d
+F error.c 3d59f42ab6336cd3760f820c2351b520bc162403
+F extract.c b57dfa22c9810821b66824a7c1d1df5d95191cd3
+F extract.h 42e5d83d55a44b058afb4b67755b4500afd2650f
+F filememory.c 84341d9e93fc3598bd839aea0e918bb266fddedb
+F filememory.h f356913c467ec56e6509086ad09f7d6a4739e674
+F filters.c 2d2cd2f704e81d1f8ef0b2c65ff9d642d1a9cf02
+F filters.h 394522e09f47f2883255544e4a5fabc6141d221e
+F fnmatchtest.c ea395b89d18449a76bae0873c260a6296b7bc526
+F index_from_tar.c ab728daa4a98c0ae4fd72f35ed7a3cdb312377b9
+F index_from_tar.h 65e8b44cbe4f81a92b021b17f119201dd7a560bf
+F listindex.c 9cab2a8ca01d5020e5e27284a6f8155e7f72e2a1
+F listindex.h 76f18eb277c80bb515acc88c6e69aadb1ccc08e9
+F loadindex.c f004d22daaee812422dd44d0a48c6975882292aa
+F loadindex.h fa8fcb4ed04f491a0c9f8d0e3abbfcb3c9079b3e
+F main.c 5c2c2f22e92105343ef769bdbe5c3d5c0c25a864
+F main.h 4b3b2273cfcf9647066810614894ba297aa32e5c
+F mytar.c 6fbb3166f5998f8fa712ebd26c1fc885513dfb2f
+F mytar.h 261d5a2b8cc852b81c236ad6c5f7c900620861dc
+F readtar.c 2f39fb2c4eb5faa7a6c1ff60819efff89da4aeb7
+F readtar.h 4ad9c476392cbee3b127573a0778346d4a5eea5e
+F rsync.c 989612778d365a7567b1fdb3cfd54ede45296b4a
+F rsync.h 00f85a9366076e1cd3728d0e8c62f1f07ec43146
+F rsynctest.c e8d81e4c6b805426507d257d2ffafcea2ca51155
+F string.c fe46e7dd7cd68e2a8251d3d0e19104541923bcad
+F testdelete.sh 4399238d8cc22743fa5fe1c989a3d607b70e14f0 x
+F traverse.c 83edec8234dff872675f72da6271d10eb1275154
+F traverse.h eed439d4e99fa9794a7f4934e5237a90ff18a4da
+F xortest.c 84cf846a31ddedf84180bc2b18323886865cc5da
+P bdfa338e7a8a3fc580fdd1ebbcc0720eb68d23f9
+R db6986ed856a539dd1efa406a3637c2d
+U viric
+Z c9facb3b7c31e736ad1b014de4958af7

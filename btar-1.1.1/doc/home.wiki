@@ -1,0 +1,121 @@
+<h2>btar - Block TAR</h2>
+
+Tar-compatible archiver which allows arbitrary compression and ciphering,
+redundancy, differential backup, indexed extraction, multicore compression,
+input and output serialisation, and tolerance to partial archive errors.
+
+Features:
+  *  Single file backup
+  *  Optional indexed access
+  *  Serialisable listing, backup and restore
+  *  Backups (btar files) can be restored with usual unix tools (sh and tar)
+  *  Allows any compression, ciphering, etc. (if you have a program that does so), and still
+     resist partial corruption (-F)
+  *  Can add an [http://en.wikipedia.org/wiki/Erasure_code|erasure code]
+    (block XOR of the others) that can protect against one erasure (-R)
+  *  Can do quick incremental backups (rearchive only the files that changed) (-d/-D)
+  *  Can work over a [http://gnu.org/software/tar|GNU tar] output (even indexing it)
+  *  Can be used in pipelines, with little memory usage even for big backup
+sizes
+  *  Can parallelize the filter operations on any number of processes (compression, ciphering, ...) (-j)
+  *  Can extract parts of the backup filtering (uncompressing, deciphering) only the
+relevant blocks
+  *  Sending USR1 will show a progress report on stderr (on btar file creation)
+  *  If linked with librsync, will only save deltas of big files on differential backup (-Y)
+  *  The files can be re-filtered (-m) through pipes, not requiring extraction and reachiving.
+
+Problems:
+  *  1.1 is simply in a "works for the me (author)" state. I store my backups *only* with it.
+  *  The incremental backups are only based on mtime.
+  *  Only supports regular files, directories and symlinks. No hard link storage
+  *  A small tool provided (xortest) can recover one full lost block from the
+btar. But a better tool could be written, for non overlapping in-block
+small erasures. Maybe based on a ddrescue log file.
+
+[/doc/tip/doc/principle.wiki|Learn how it works] -
+[/doc/tip/doc/requirements.wiki|How it compares to other backup tools]
+
+<h3>Download</h3>
+
+Stable version: [http://vicerveza.homeunix.net/~viric/soft/btar/btar-1.1.tar.gz|btar-1.1.tar.gz] - 62KB - GPLv3+
+- [http://vicerveza.homeunix.net/~viric/soft/btar/ChangeLog|ChangeLog]
+
+Trunk version: [/tarball/btar-trunk.tar.gz?uuid=trunk|trunk tarball] (should be stable, and possibly with fixes after the release)
+
+<h2>Use cases</h2>
+
+Backup the home with xz compression with 4 cores:
+<verbatim>
+# btar -F xz -j 4 -f /mnt/usbb/backup/myhomebackup.btar -c /home/
+</verbatim>
+
+Update to a diff backup:
+<verbatim>
+# btar -F xz -j 4 -d /mnt/usbb/backup/myhomebackup.btar \
+    -f  /mnt/usbb/backup/myhomebackup_diff.btar \
+    -c /home/
+</verbatim>
+
+Backup the mail using 4 cores with gpg, and add an XOR redundancy. Use
+gpg-agent or it will ask a password per block.
+<verbatim>
+$ btar -F "gpg2 -se" -j 4 -R -c mail > /mnt/usbb/backup/mymailbackup.btar
+</verbatim>
+
+Extract only my mail from the home backup made with xz (or whatever it was):
+<verbatim>
+$ btar -x -f /mnt/usbb/backup/myhomebackup.btar 'home/viric/mail/*' 
+</verbatim>
+
+Test that a btar file contents are still the same on disk (although if a file
+is missing in the btar, it will not report it):
+<verbatim>
+$ btar -T -f /mnt/usbb/backup/myhomebackup.btar | tar d
+</verbatim>
+
+<h2>btar -h</h2>
+<verbatim>
+btar 1.1 [e5b0e4f692] Copyright (C) 2011-2012  Lluis Batlle i Rossell
+usage: btar [options] [actions]
+actions:
+   -c       Create a btar file. Non-options mean directories or files to add.
+   -x       Extract the btar contents to disk.
+              In this case, non-options mean glob patterns to extract.
+   -T       Extract the btar contents as a tar to stdout.
+              In this case, non-options mean glob patterns to extract.
+   -l       List the btar index contents.
+   -L       Output the btar index as tar.
+   -m       Mangle filters and block size from stdin to output btar (-f or stdout)).
+   (none)   Make btar file from the standard input data (filter mode).
+options only meaningful when creating or filtering:
+   -b <blocksize>   Set the block size in megabytes (default 10MiB)
+   -d <file>        Take the index in the btar file as files already stored
+   -D <file>        Take the index file as files already stored
+   -f <file>        Output file while creating, input while extracting, 
+                      or stdin/out if ommitted.
+   -F <filter>      Filter each block through program named 'filter'.
+   -H               Delete files as noted in diff backups, when extracting.
+   -j <n>           Number of blocks to filter in parallel.
+   -N               Skip making an index in the btar, make only blocks.
+   -R               Add a XOR redundancy block.
+   -U <filter>      Filters for the index and deleted list.
+   -v               Output the file names on stderr (on action 'c').
+   -X <pattern>     Add glob exclude pattern.
+   -Y               Create and use rsync signatures in indices for binary diff.
+other options:
+   -G <defilter>    Defilter each input block through program named 'filter'.
+                      May be relevant for '-d' when creating/filtering, or extracting.
+   -V               Show traces of what goes on. More V mean more traces.
+examples:
+   tar c /home | btar -b 50 -F xz > /tmp/homebackup.btar
+   btar -F xz -c -f mydir.btar mydir
+   btar -d mydir.btar -v -c mydir > mydir2.btar
+   btar -T 'mydir/m*' < mydir.btar | tar x
+ This program comes with ABSOLUTELY NO WARRANTY.
+ This is free software, and you are welcome to redistribute it
+ under certain conditions. See the source distribution for details.
+</verbatim>
+
+Licence: GPLv3 or later
+
+Author: Lluís Batlle i Rossell &lt;viric@virictar.name&gt; (without the word <strong>tar</strong>)

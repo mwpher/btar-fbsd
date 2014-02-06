@@ -1,0 +1,239 @@
+.\" Copyright Lluís Batlle i Rossell
+.\"
+.\" This file may be copied under the conditions described
+.\" in the LDP GENERAL PUBLIC LICENSE, Version 1, September 1998
+.\" that should have been distributed together with this file.
+.\" 
+.\" Note: I took the gnu 'ls' man page as an example.
+.TH BTAR 1 2012-07 "btar 1.1"
+.SH NAME
+btar \- tar-compatible archiver with extra features based on tar double-achiving
+.SH SYNOPSIS
+.BI "btar [" actions "] [" options "] [" files... ]
+.sp
+Actions:
+.BI "[\-cxTlLmh]
+.sp
+Options:
+.BI "[\-HNRvXYV]"
+.BI "[\-b <"blocksize >]
+.BI "[\-d <"file >]
+.BI "[\-D <"file|- >]
+.BI "[\-f <"file >]
+.BI "[\-F <"filter >]
+.BI "[\-j <"n >]
+.BI "[\-X <"pattern >]
+.BI "[\-G <"defilter >]
+
+.SH DESCRIPTION
+.B btar
+archives trees of files into a single file, using internally any desired amount
+of filters (programs that transform data from stdin to stdout, like gzip or
+ccrypt for example). The filters are applied to big fixed-size blocks of usual
+tar data, and they will include an index to allow later dearchiving without
+having to decode the whole archive (uncompressing, unciphering, etc.). This allows
+nice features like quick extraction of partial contents of the archive, and
+parallelization of compression, for example.
+
+.B btar
+also allows for creation of differential archives, based on the index of a btar
+archive already created.
+
+It is similar to tar in the sense that it can operate creating a btar archive to
+standard output, or unpack an archive from standard input (unseekable sources
+or destinations). And it can also interoperate with tar, in the sense that it
+can create a btar archive based on tar output, instead of btar archiving the
+files.  As btar does not support as much filesystem features as GNU tar, it may
+be interesting for users to have the btar features while respecting GNU tar
+archiving features, as btar can also create a file index based on a GNU tar
+archive. Additionally, btar archives can be extracted without the help of btar
+at all, only using tar.
+
+.B btar
+can create multiple blocks at once, running their filters in parallel.
+This means that it can easily use multiprocessor systems at the time of creating
+the archive. At the current version, this is only possible archiving, not
+dearchiving.
+
+.SH ACTIONS
+Running btar with no options will make btar act as a filter, simply splitting
+the input from stdin into blocks, applying the chosen filters, and joining them
+with tar to form a btar archive. This allows creating btar archives from any
+kind of input, and for tar input it can also index it, like in this example:
+.B tar cp /home | btar -F gzip
+.TP
+.B "\-c"
+Create a btar archive from filesystem directories, similar to
+.B tar -c
+
+Then, files or directories added to the btar command will be recursively
+traversed for inclusion into the btar archive. \fB-X\fR allows for patterns of
+exclusion.
+.TP
+.B "\-x"
+Extract btar archive files to the filesystem, similar to
+.B tar -x
+
+Then, files or directories added to the btar command will be extracted
+from the btar archive, based on \fBfnmatch(3)\fR without flags.
+
+The defilters for the file can be speficied with \fB-G\fR or they will be
+guessed calling the original filter programs with a parameter \fB-d\fR (usual in
+compressors, ccrypt, etc.).
+.TP
+.B "\-T"
+Extract the internal tar archive of btar. For example, it can be used with GNU
+tar for detailed listing this way:
+.B btar -x | tar tv
+
+The defilters will be called as explained in \fB-x\fR.
+.TP
+.B "\-l"
+Output a simple list of the btar internal index.
+
+The defilters will be called as explained in \fB-x\fR.
+.TP
+.B "\-L"
+Output the internal btar index tar file to stdout. It can be used, for exmaple,
+to get its detailed listing this way:
+.B btar -L | tar tv
+.TP
+.B "\-m"
+Take an input btar from stdin, and rebuild a new btar according to the block size
+(\fB-b\fR), new filters (\fB-F\fR), or add redundancy block (\fB-R\fR).
+
+The data inside each block is not manipulated, and the index and deleted files
+data as well. In case the input btar did not have index or deleted files, the
+new btar will have them, but at zero-length.
+
+For extraction of the input btar, defilters will be called as explained in \fB-x\fR.
+
+.SH OPTIONS
+.TP
+.B "\-b <blocksize>"
+By default btar splits the input (its internal tar archive in case of \fB-c\fR)
+into blocks of 10MiB, but this can be overriden with this parameter, that
+expects the number of mebibytes per block. For example it can be interesting
+to use bigger block sizes with the \fBxz\fR compressor, as it uses very big
+compression windows.
+.TP
+.B "\-d <file>"
+Base the creation of an archive (only using \fB-c\fR) on the index inside the btar
+file given to the parameter. It can be used several times, to create level1,
+level2, ... archives, and combined with \fB-d\fR too.
+
+The defilters will be called as explained in \fB-x\fR.
+.TP
+.B "\-D <file|->"
+Base the creation of an archive (only using \fB-c\fR) on the tar-format btar index
+file given to the parameter. It can be used several times, to create level1,
+level2, ...  archives, and combined with \fB-d\fR too. It accepts reading from
+stdin too.
+
+This can be useful to make a remote backup, in a command like this:
+.B btar -L -f base.btar | ssh remote "btar -D - -c /home" | btar -T | btar -F xz > diff.btar
+
+This above will take the index from base.btar and use it to create a
+differential backup in a remote host, while we apply the \fBxz\fR filter locally
+to get the final differential dense btar archive.
+.TP
+.B "\-f <file>"
+In case of creating an archive (this is either without action, or with
+\fB-c\fR), this determines the output btar file instead of the default stdout.
+
+In case of reading from an archive (rest of actions), this determines the input
+btar file instead of the default stdin. In this case it can be specified
+multiple times, and this is useful in case of extracting a base and its
+differential archives of different levels.
+.TP
+.B "\-F <filter>"
+For every block created (either filtering or with \fB-c\fR), filter the block
+calling this given filter program, giving the block to it through stdin, and
+storing its output into the created btar archive.
+
+It can be specified multiple times, and the filters will pass data one to the
+other in the order given in the command line.
+
+In case of requiring to pass parameters to the filter, the filter can contain
+spaces, and the filter command executed will have the arguments splitted by
+those spaces. For a filter argument that requires spaces in it, the user can write a
+wrapper script, and then pass the script name to \fB-F\fR.
+
+The word before the first space will be used as the filter name, stored inside
+the btar archive for each filter, for later automatic defiltering at extraction
+time, not requiring \fB-G\fR parameters.
+
+.B "\-G <defilter>"
+If btar has to extract blocks from a btar archive (either extracting its files,
+or making a differential archive), specify the commands (analogous to \fB-F\fR)
+that will recover every block to its original data.
+
+As btar archives store the first word of the filter specified by \fB-F\fR at the
+time of btar archive creation, btar will call each of those filters with the
+parameter \fB-d\fR in case of not specifying any defilter with \fB-G\fR. This
+allows not requiring any \fB-G\fR parameter for usual programs like gzip or
+ccrypt.
+
+.TP
+.B "\-H"
+Differential archives keep a list of removed files and directories from the
+filesystem. Extracting with \fB-H\fR makes btar remove those files and
+directories; otherwise, the list of removed files and directories is ignored at
+extraction.
+.TP
+.B "\-j <n>"
+Number of blocks to filter in parallel at the time of creating an archive
+(either filtering or with \fB-c\fR).
+.TP
+.B "\-N"
+In case of creating an archive by btar filtering, do not create an index of the
+files seen in standard input.
+
+The index may be useful only if the input comes from GNU tar.
+.TP
+.B "\-R"
+In case of creating a btar archive, add a block that will be the XOR of the rest
+of the blocks. This adds some redundancy to the archive, that can allow
+recovering the full archive if some of its contents have been damaged.
+.TP
+.B "\-v"
+Output the file names processed to stderr, in \fB-c\fR and \fB-x\fR.
+.TP
+.B "\-V"
+Add verbose output of the btar internal actions performed. Can be specified
+multiple times to increase the verbosity.
+.TP
+.B "\-X"
+At the time of creating an archive, exclude files from inclusion into the
+archive, based on \fBfnmatch(3)\fR without flags.
+
+Ignored at the time of extracting from an archive.
+.TP
+.B "\-Y"
+If btar has been built with librsync support, this indicates that differential
+btar archives will not include full changed files, but only the changed parts of
+the files based on the \fBrdiff\fR algorithm.
+
+.SH INTERNAL FORMAT
+
+The btar archive format is compatible with tar. Tar will see there block files,
+named according to the filters used. Defiltering every block, and joining all
+the blocks, creates back a normal tar archive (that's the operation done by
+\fB-T\fR).
+
+The btar archive may contain, additionalto the archive blocks, the index file
+and a list of files deleted (in case of a differential archive).
+
+Therefore, a btar archive can be uncompressed without having the btar program.
+An archive created with "-F gzip" can be extracted with:
+.B (for a in `tar tf file.btar` | grep ^block`; do tar xf file.btar -O $a | \
+gunzip; done) | tar x
+
+.SH SEE ALSO
+.BR tar (1)
+.SH AUTHOR
+Lluis Batlle i Rossell
+.SH NOTES
+This page describes
+.B btar
+as in version 1.0.0. Other versions may differ.

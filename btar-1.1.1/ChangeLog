@@ -1,0 +1,40 @@
+ChangeLog of btar - Block Tar
+
+v1.1.1  30/07/2012   Bugfix release
+---
+- Fixing a fd leak to filters. That broke often the parallelism of "-jN".
+
+v1.1  29/07/2012   More features
+---
+- Adding the -m capability to change the filters of a given btar file
+- Performance improvements (string manipulation)
+- Adding -U, to filter only the index/deleted.
+- Fixing -H so, in case of extracting specific paths, it only attmepts
+to delete files complying the pattern.
+
+v1.0.1  02/06/2012   Small bugfix
+---
+- Bugfix in a last change (wrong error condition)
+
+v1.0.0  02/06/2012   Basic functionality complete
+---
+- Adding a manual page
+- Store of the files deleted into differential archives
+- Portability fixes.
+
+v0.9.2  05/03/2012   Bugfix release
+----
+- Fixing the linking on cygwin [37227d1720]
+- Fixing the printing of long long numbers [632ca23802]
+- Fixing a bug extracting files over 8.5GB [aa1e131364]
+- Fixing a bug extracting about leaking fds [1dbc96d5b1]
+
+v0.9.1  10/12/2011   Bugfix release
+----
+- Added headers for it to build in platforms other than Linux
+- Fixing troubles with long file names when 'tar c | btar'
+- Avoid storing directories where no files changed, in differential archives
+
+v0.9  09/12/2011
+-----
+- First release
